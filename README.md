@@ -5,10 +5,12 @@ Real-time route optimization using quantum-inspired algorithms and Google Maps d
 ## Features
 
 - ✅ Real-time traffic data from Google Maps
-- ✅ Quantum-inspired optimization using Grover's algorithm
+- ✅ **REAL Quantum Computing** using Grover's algorithm with quantum circuits
+- ✅ Quantum simulator (Qiskit Aer) for circuit execution
 - ✅ Interactive web interface with Streamlit
 - ✅ Visual route display on interactive maps
 - ✅ Multiple route comparison
+- ✅ Quantum statistics display (qubits, iterations, speedup)
 
 ## Setup Instructions
 
