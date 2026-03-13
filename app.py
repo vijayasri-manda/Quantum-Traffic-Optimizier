@@ -163,40 +163,52 @@ def create_map_with_all_routes(all_routes, optimal_route_id, start_location, end
     center = all_routes[0]['coordinates'][0]
     m = folium.Map(location=center, zoom_start=8)
     
-    # Define colors for routes
-    route_colors = ['gray', 'lightgray', 'darkgray', 'purple', 'orange']
+    # Define colors for alternative routes
+    alt_colors = ['blue', 'purple', 'orange', 'darkred', 'darkblue', 'darkgreen', 'cadetblue', 'darkpurple']
     
     # Add all routes to map
     for route in all_routes:
         route_id = route['route_id']
         coords = route['coordinates']
-        
-        # Check if this is the optimal route
         is_optimal = (route_id == optimal_route_id)
         
         if is_optimal:
-            color = 'green'
-            weight = 7
+            # Optimal route: bold green with glow effect
+            color = 'lime'
+            weight = 8
             opacity = 1.0
             dash_array = None
             label = f"⭐ OPTIMAL: {route['route_name']}"
+            
+            # Add glow effect with thicker semi-transparent line underneath
+            folium.PolyLine(
+                coords,
+                color='green',
+                weight=12,
+                opacity=0.3,
+                dash_array=None
+            ).add_to(m)
         else:
-            color = route_colors[route_id % len(route_colors)]
+            # Alternative routes: distinct colors with dashed pattern
+            color = alt_colors[route_id % len(alt_colors)]
             weight = 4
-            opacity = 0.6
-            dash_array = '10, 5'
+            opacity = 0.7
+            dash_array = '8, 4'
             label = f"Route {route_id + 1}: {route['route_name']}"
         
-        # Create popup with route details
+        # Create detailed popup
         popup_html = f"""
-        <div style="font-family: Arial; width: 250px;">
-            <h4 style="margin: 0; color: {'green' if is_optimal else 'black'};">
-                {'⭐ OPTIMAL ROUTE' if is_optimal else f'Route {route_id + 1}'}
+        <div style="font-family: Arial; width: 280px; padding: 10px;">
+            <h4 style="margin: 0; color: {'lime' if is_optimal else 'black'}; font-weight: bold;">
+                {'🏆 OPTIMAL ROUTE' if is_optimal else f'📍 Route {route_id + 1}'}
             </h4>
-            <hr style="margin: 5px 0;">
-            <b>Name:</b> {route['route_name']}<br>
-            <b>Distance:</b> {route['distance_km']:.2f} km<br>
-            <b>Travel Time:</b> {route['duration_in_traffic_min']:.1f} min
+            <hr style="margin: 8px 0; border: 1px solid #ddd;">
+            <table style="width: 100%; font-size: 13px;">
+                <tr><td><b>Name:</b></td><td>{route['route_name']}</td></tr>
+                <tr><td><b>Distance:</b></td><td>{route['distance_km']:.2f} km</td></tr>
+                <tr><td><b>Travel Time:</b></td><td>{route['duration_in_traffic_min']:.1f} min</td></tr>
+                <tr><td><b>Traffic Delay:</b></td><td>{route['traffic_delay_min']:.1f} min</td></tr>
+            </table>
         </div>
         """
         
@@ -213,19 +225,46 @@ def create_map_with_all_routes(all_routes, optimal_route_id, start_location, end
     # Add start marker
     folium.Marker(
         center,
-        popup=f"<b>START</b><br>{start_location}",
+        popup=f"<b>🚀 START</b><br>{start_location}",
         tooltip="Start Location",
-        icon=folium.Icon(color='green', icon='play', prefix='fa')
+        icon=folium.Icon(color='green', icon='play', prefix='fa', icon_color='white')
     ).add_to(m)
     
     # Add end marker
     end_coord = all_routes[0]['coordinates'][-1]
     folium.Marker(
         end_coord,
-        popup=f"<b>DESTINATION</b><br>{end_location}",
+        popup=f"<b>🏁 DESTINATION</b><br>{end_location}",
         tooltip="Destination",
-        icon=folium.Icon(color='red', icon='stop', prefix='fa')
+        icon=folium.Icon(color='red', icon='stop', prefix='fa', icon_color='white')
     ).add_to(m)
+    
+    # Add legend
+    legend_html = '''
+    <div style="position: fixed; 
+                bottom: 50px; right: 50px; width: 280px; height: auto; 
+                background-color: white; border:2px solid grey; z-index:9999; 
+                font-size:14px; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 6px rgba(0,0,0,0.3);">
+        <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px; color: #333;">Route Legend</p>
+        <div style="margin: 8px 0;">
+            <span style="display: inline-block; width: 20px; height: 4px; background-color: lime; margin-right: 8px; border: 1px solid green;"></span>
+            <b>Optimal Route</b> (Selected by Quantum Algorithm)
+        </div>
+        <div style="margin: 8px 0;">
+            <span style="display: inline-block; width: 20px; height: 4px; background-color: blue; margin-right: 8px; border-bottom: 2px dashed blue;"></span>
+            <b>Alternative Routes</b> (Other options)
+        </div>
+        <div style="margin: 8px 0;">
+            <span style="color: green; font-size: 18px; margin-right: 8px;">Start</span>
+            <b>Start Location</b>
+        </div>
+        <div style="margin: 8px 0;">
+            <span style="color: red; font-size: 18px; margin-right: 8px;">End</span>
+            <b>Destination</b>
+        </div>
+    </div>
+    '''
+    m.get_root().html.add_child(folium.Element(legend_html))
     
     return m
 
@@ -249,13 +288,24 @@ if optimize_button:
                 else:
                     st.success(f"✅ Found {len(all_routes)} alternative routes!")
                     
-                    # Display all routes in a detailed table
+                    # Apply quantum optimization first to get optimal route ID
+                    with st.spinner("⚛️ Running Grover's Quantum Algorithm on quantum simulator..."):
+                        import time
+                        quantum_start = time.time()
+                        optimizer = QuantumRouteOptimizer(all_routes)
+                        optimal_route_id, optimal_route = optimizer.find_optimal_route()
+                        quantum_time = time.time() - quantum_start
+                        quantum_stats = optimizer.get_quantum_stats()
+                    
+                    # Display all routes in a detailed table with highlighting
                     st.header("🛣️ ALL AVAILABLE ROUTES FROM SOURCE TO DESTINATION")
                     
                     # Create DataFrame for display
                     route_table_data = []
                     for route in all_routes:
+                        is_optimal = route['route_id'] == optimal_route_id
                         route_table_data.append({
+                            "Status": "⭐ OPTIMAL" if is_optimal else "Alternative",
                             "Route #": route['route_id'] + 1,
                             "Route Name": route['route_name'],
                             "Distance (km)": f"{route['distance_km']:.2f}",
@@ -263,22 +313,56 @@ if optimize_button:
                         })
                     
                     df = pd.DataFrame(route_table_data)
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    
+                    # Highlight optimal route
+                    def highlight_optimal(row):
+                        if row['Status'] == '⭐ OPTIMAL':
+                            return ['background-color: #90EE90; font-weight: bold; color: darkgreen;'] * len(row)
+                        return [''] * len(row)
+                    
+                    styled_df = df.style.apply(highlight_optimal, axis=1)
+                    st.dataframe(styled_df, use_container_width=True, hide_index=True)
                     
                     # Apply quantum optimization
                     st.header("⚛️ QUANTUM OPTIMIZATION")
                     
-                    # Quantum optimization with timing
-                    import time
-                    with st.spinner("Applying Grover's algorithm to find optimal route..."):
-                        quantum_start = time.time()
-                        optimizer = QuantumRouteOptimizer(all_routes)
-                        optimal_route_id, optimal_route = optimizer.find_optimal_route()
-                        quantum_time = time.time() - quantum_start
-                    
                     if optimal_route:
                         st.success("✅ Quantum optimization complete!")
-                        st.info(f"⏱️ Computation Time: {quantum_time*1000:.2f} ms")
+                        
+                        # Display quantum computation details
+                        st.subheader("⚛️ Quantum Computation Details")
+                        
+                        col_q1, col_q2, col_q3, col_q4 = st.columns(4)
+                        
+                        with col_q1:
+                            st.metric(
+                                label="Qubits Used",
+                                value=quantum_stats.get('n_qubits', 'N/A'),
+                                help="Number of quantum bits used in the circuit"
+                            )
+                        
+                        with col_q2:
+                            st.metric(
+                                label="Grover Iterations",
+                                value=quantum_stats.get('n_iterations', 'N/A'),
+                                help="Number of oracle + diffuser cycles"
+                            )
+                        
+                        with col_q3:
+                            st.metric(
+                                label="Quantum Speedup",
+                                value=quantum_stats.get('speedup', 'N/A'),
+                                help="Theoretical speedup vs classical search"
+                            )
+                        
+                        with col_q4:
+                            st.metric(
+                                label="Success Rate",
+                                value=quantum_stats.get('success_rate', 'N/A'),
+                                help="Probability of measuring optimal route"
+                            )
+                        
+                        st.info(f"⏱️ **Computation Time:** {quantum_time*1000:.2f} ms | **Method:** {quantum_stats.get('method', 'Quantum Search')}")
                         
                         # Display optimal route details prominently
                         st.header("⭐ OPTIMAL ROUTE ")
@@ -328,11 +412,16 @@ if optimize_button:
                         # Map visualization
                         st.header("🗺️ ROUTE VISUALIZATION")
                         st.markdown("""
-                        **Legend:**
-                        - 🟢 **Green (Solid)** = Optimal Route (Selected by Quantum Algorithm)
-                        - ⚪ **Gray (Dashed)** = Alternative Routes
+                        **Map Legend:**
+                        - 🟢 **Bright Green (Solid, Bold)** = Optimal Route (Selected by Quantum Algorithm)
+                        - 🔵 **Colored Lines (Dashed)** = Alternative Routes (Blue, Purple, Orange, etc.)
                         - 🟢 **Green Marker** = Start Location
                         - 🔴 **Red Marker** = Destination
+                        
+                        **Interaction Tips:**
+                        - Click on any route line to see detailed information
+                        - Hover over routes to see route names
+                        - Zoom in/out to explore the map
                         """)
                         
                         map_obj = create_map_with_all_routes(all_routes, optimal_route_id, start_location, end_location)
@@ -350,11 +439,22 @@ if optimize_button:
                             - **Total Distance:** {optimal_route['distance_km']:.2f} km
                             - **Travel Time:** {optimal_route['duration_in_traffic_min']:.1f} minutes
                             
-                            **Optimization Method:**
-                            - Algorithm: Quantum-inspired Grover's Search Algorithm
-                            - **Optimization Goal:**
+                            **Quantum Algorithm Details:**
+                            - **Algorithm:** Grover's Quantum Search Algorithm
+                            - **Qubits Used:** {quantum_stats.get('n_qubits', 'N/A')} quantum bits
+                            - **Grover Iterations:** {quantum_stats.get('n_iterations', 'N/A')} (Oracle + Diffuser cycles)
+                            - **Quantum Speedup:** {quantum_stats.get('speedup', 'N/A')} faster than classical
+                            - **Success Rate:** {quantum_stats.get('success_rate', 'N/A')}
+                            - **Computation Time:** {quantum_time*1000:.2f} milliseconds
+                            
+                            **How Grover's Algorithm Works:**
+                            1. **Superposition:** All {len(all_routes)} routes exist simultaneously in quantum state
+                            2. **Oracle:** Quantum circuit marks the optimal route by flipping its phase
+                            3. **Amplification:** Diffusion operator amplifies the probability of the optimal route
+                            4. **Measurement:** Quantum state collapses to optimal route with high probability
+                            
+                            **Optimization Goal:**
                             - Evaluation Criteria: Time with traffic (50% weight) + Distance (50% weight)
-                            - Computation Time: {quantum_time*1000:.2f} milliseconds
                             
                             **Why This Route?**
                             This route was selected because it provides the **BEST BALANCE** of short distance and low travel time. 
@@ -398,11 +498,25 @@ with st.expander("ℹ️ About This System"):
     
     1. **Data Collection**: Fetches ALL available routes with real-time traffic data from Google Maps API
     2. **Route Analysis**: Extracts distance and time for each route
-    3. **Quantum Optimization**: Applies Grover's algorithm-inspired search to find optimal path
+    3. **Quantum Optimization**: Applies **REAL Grover's Algorithm** using quantum circuits to find optimal path
     4. **Visualization**: Displays all routes on map with optimal route highlighted in green
     
+    ### Quantum Computing Explained
+    
+    **Grover's Algorithm Steps:**
+    1. **Superposition**: All routes exist simultaneously in quantum state (not checked one-by-one)
+    2. **Oracle**: Quantum circuit marks the optimal route by phase inversion
+    3. **Amplification**: Diffusion operator amplifies probability of optimal route
+    4. **Measurement**: Quantum state collapses to optimal route with ~100% probability
+    
+    **Quantum Advantage:**
+    - Classical Search: O(N) - checks all N routes
+    - Quantum Search: O(√N) - quadratic speedup!
+    - Example: 100 routes → Classical: 100 checks, Quantum: 10 checks
+    
     ### Technologies Used
-    - **Qiskit**: Quantum circuit simulation
+    - **Qiskit**: Quantum circuit simulation and Grover's algorithm
+    - **Qiskit Aer**: Quantum simulator backend
     - **Google Maps API**: Real-time traffic data & Places autocomplete
     - **NetworkX**: Graph algorithms
     - **Streamlit**: Web interface
@@ -412,4 +526,7 @@ with st.expander("ℹ️ About This System"):
     ### Metrics Explained
     - **Distance**: Total length of the route in kilometers
     - **Travel Time**: Estimated travel time considering current traffic conditions
+    - **Qubits**: Number of quantum bits used (log₂(routes))
+    - **Grover Iterations**: Number of oracle + diffuser cycles (π/4 * √N)
+    - **Quantum Speedup**: Theoretical speedup factor (√N times faster)
     """)
