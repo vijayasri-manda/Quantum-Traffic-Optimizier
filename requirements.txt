@@ -1,11 +1,9 @@
 googlemaps>=4.10.0
 networkx>=3.2.1
-qiskit>=0.45.1
-qiskit-aer>=0.13.0
+numpy>=1.26.0
 streamlit>=1.29.0
 folium>=0.15.1
 streamlit-folium>=0.15.1
-numpy>=1.26.0
 requests>=2.31.0
-streamlit-searchbox>=0.1.13
 pandas>=2.0.0
+plotly>=5.17.0

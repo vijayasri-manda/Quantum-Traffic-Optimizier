@@ -1,0 +1,8 @@
+{
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Windows",
+  "venvPath": ".",
+  "typeCheckingMode": "basic",
+  "include": ["."],
+  "exclude": ["**/node_modules", "**/__pycache__"]
+}

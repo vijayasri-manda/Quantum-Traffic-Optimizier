@@ -336,12 +336,103 @@ if optimize_button:
                     - 🔵 **Colored Lines (Dashed)** = Alternative Routes (Blue, Purple, Orange, etc.)
                     - 🟢 **Green Marker** = Start Location
                     - 🔴 **Red Marker** = Destination
+
+                    **Interaction Tips:**
+                    - Click on any route line to see detailed information
+                    - Hover over routes to see route names
+                    - Zoom in/out to explore the map
                     """)
                     map_obj = create_map_with_all_routes(all_routes, optimal_route_id, start_location, end_location)
                     if map_obj:
                         folium_static(map_obj, width=1400, height=700)
 
-                    # Detailed explanation
+                    # Apply quantum optimization
+                    st.header("⚛️ QUANTUM OPTIMIZATION")
+                    
+                    if optimal_route:
+                        st.success("✅ Quantum optimization complete!")
+                        
+                        # Display quantum computation details
+                        st.subheader("⚛️ Quantum Computation Details")
+                        
+                        col_q1, col_q2, col_q3, col_q4 = st.columns(4)
+                        
+                        with col_q1:
+                            st.metric(
+                                label="Qubits Used",
+                                value=quantum_stats.get('n_qubits', 'N/A'),
+                                help="Number of quantum bits used in the circuit"
+                            )
+                        
+                        with col_q2:
+                            st.metric(
+                                label="Grover Iterations",
+                                value=quantum_stats.get('n_iterations', 'N/A'),
+                                help="Number of oracle + diffuser cycles"
+                            )
+                        
+                        with col_q3:
+                            st.metric(
+                                label="Quantum Speedup",
+                                value=quantum_stats.get('speedup', 'N/A'),
+                                help="Theoretical speedup vs classical search"
+                            )
+                        
+                        with col_q4:
+                            st.metric(
+                                label="Success Rate",
+                                value=quantum_stats.get('success_rate', 'N/A'),
+                                help="Probability of measuring optimal route"
+                            )
+                        
+                        st.info(f"⏱️ **Classical Computation Time:** {classical_time*1000:.2f} ms | **Quantum Time:** {quantum_time*1000:.2f} ms")
+                        
+                        # Display optimal route details prominently
+                        st.header("⭐ OPTIMAL ROUTE")
+                        st.success(f"🏆 This route has the best balance of SHORT DISTANCE and LOW TIME!")
+                        
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric(
+                                label="Route",
+                                value=f"#{optimal_route['route_id'] + 1}"
+                            )
+                        
+                        with col2:
+                            st.metric(
+                                label="Distance",
+                                value=f"{optimal_route['distance_km']:.2f} km"
+                            )
+                        
+                        with col3:
+                            st.metric(
+                                label="Travel Time",
+                                value=f"{optimal_route['duration_in_traffic_min']:.1f} min"
+                            )
+                        
+                        # Display route name
+                        st.info(f"**Route Name:** {optimal_route['route_name']}")
+                        
+                        # Comparison with other routes
+                        st.subheader("📊 Comparison with Other Routes")
+                        
+                        comparison_data = []
+                        for route in all_routes:
+                            is_optimal = route['route_id'] == optimal_route_id
+                            comparison_data.append({
+                                "Status": "⭐ OPTIMAL" if is_optimal else "Alternative",
+                                "Route": f"Route {route['route_id'] + 1}",
+                                "Name": route['route_name'],
+                                "Distance (km)": f"{route['distance_km']:.2f}",
+                                "Travel Time (min)": f"{route['duration_in_traffic_min']:.1f}",
+                                "Difference": f"+{route['duration_in_traffic_min'] - optimal_route['duration_in_traffic_min']:.1f} min, +{route['distance_km'] - optimal_route['distance_km']:.2f} km" if not is_optimal else "—"
+                            })
+                        
+                        comparison_df = pd.DataFrame(comparison_data)
+                        st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+                        
+                        # Detailed explanation
                         with st.expander("💡 Why This Route is Optimal"):
                             st.markdown(f"""
                             ### Optimization Details
@@ -436,87 +527,6 @@ if optimize_button:
                                     st.write(f"- **Route {route['route_id'] + 1}:** {route['distance_km']:.2f} km, {route['duration_in_traffic_min']:.1f} min (Difference: {dist_diff:+.2f} km, {time_diff:+.1f} min)")
                             
                             st.success(f"✅ This route optimizes BOTH distance and time for the best overall journey!")
-                            
-                        # Display quantum computation details
-                        st.subheader("⚛️ Quantum Computation Details")
-                        
-                        col_q1, col_q2, col_q3, col_q4 = st.columns(4)
-                        
-                        with col_q1:
-                            st.metric(
-                                label="Qubits Used",
-                                value=quantum_stats.get('n_qubits', 'N/A'),
-                                help="Number of quantum bits used in the circuit"
-                            )
-                        
-                        with col_q2:
-                            st.metric(
-                                label="Grover Iterations",
-                                value=quantum_stats.get('n_iterations', 'N/A'),
-                                help="Number of oracle + diffuser cycles"
-                            )
-                        
-                        with col_q3:
-                            st.metric(
-                                label="Quantum Speedup",
-                                value=quantum_stats.get('speedup', 'N/A'),
-                                help="Theoretical speedup vs classical search"
-                            )
-                        
-                        with col_q4:
-                            st.metric(
-                                label="Success Rate",
-                                value=quantum_stats.get('success_rate', 'N/A'),
-                                help="Probability of measuring optimal route"
-                            )
-                        
-                        st.info(f"⏱️ **Classical Computation Time:** {classical_time*1000:.2f} ms | **Quantum Time:** {quantum_time*1000:.2f} ms")
-                        
-                        # Display optimal route details prominently
-                        st.header("⭐ OPTIMAL ROUTE")
-                        st.success(f"🏆 This route has the best balance of SHORT DISTANCE and LOW TIME!")
-                        
-                        col1, col2, col3 = st.columns(3)
-                        
-                        with col1:
-                            st.metric(
-                                label="Route",
-                                value=f"#{optimal_route['route_id'] + 1}"
-                            )
-                        
-                        with col2:
-                            st.metric(
-                                label="Distance",
-                                value=f"{optimal_route['distance_km']:.2f} km"
-                            )
-                        
-                        with col3:
-                            st.metric(
-                                label="Travel Time",
-                                value=f"{optimal_route['duration_in_traffic_min']:.1f} min"
-                            )
-                        
-                        # Display route name
-                        st.info(f"**Route Name:** {optimal_route['route_name']}")
-                        
-                        # Comparison with other routes
-                        st.subheader("📊 Comparison with Other Routes")
-                        
-                        comparison_data = []
-                        for route in all_routes:
-                            is_optimal = route['route_id'] == optimal_route_id
-                            comparison_data.append({
-                                "Status": "⭐ OPTIMAL" if is_optimal else "Alternative",
-                                "Route": f"Route {route['route_id'] + 1}",
-                                "Name": route['route_name'],
-                                "Distance (km)": f"{route['distance_km']:.2f}",
-                                "Travel Time (min)": f"{route['duration_in_traffic_min']:.1f}",
-                                "Difference": f"+{route['duration_in_traffic_min'] - optimal_route['duration_in_traffic_min']:.1f} min, +{route['distance_km'] - optimal_route['distance_km']:.2f} km" if not is_optimal else "—"
-                            })
-                        
-                        comparison_df = pd.DataFrame(comparison_data)
-                        st.dataframe(comparison_df, use_container_width=True, hide_index=True)
-                        
                         
                         # Route details
                         with st.expander("📋 Detailed Route Information"):
